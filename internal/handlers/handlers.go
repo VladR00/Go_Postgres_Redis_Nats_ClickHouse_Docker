@@ -2,63 +2,72 @@ package handlers
 
 import (
 	"encoding/json"
+	response "gopostgres/internal/models/handle"
+	postgres "gopostgres/internal/storage/requestStorage"
 	"net/http"
-	//storage "gopostgres/storage"
+
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func HandlerCreate(w http.ResponseWriter, r *http.Request) {
+type StorageHandler struct {
+	Db *pgxpool.Pool
+}
+
+func NewStorageHandler(storage *pgxpool.Pool) *StorageHandler {
+	return &StorageHandler{Db: storage}
+}
+
+func (s *StorageHandler) HandlerCreate(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(DefaultResponse{"Error", "Only POST method allowed"})
+		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: "Only POST method allowed"})
+		return
+	}
+	var request response.CreatePayload
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: "Decode. Want 'name':'string'"})
 		return
 	}
 
-	//var data storage.Data
+	postgres.NewStoragePostgres(s.Db).CreateGood(request)
 
-	// if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-	// 	w.WriteHeader(http.StatusBadRequest)
-	// 	response = map[string]string{"error": "Bad request"}
-	// 	w.Header().Set("Content-Type", "application/json")
-	// 	json.NewEncoder(w).Encode(response)
-	// 	return
-	// }
-
-	//data.AddQuote()
-	response := DefaultResponse{"Message", "Successfully"}
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: "Only PATCH method allowed"})
 }
-func HandlerPatch(w http.ResponseWriter, r *http.Request) {
+func (s *StorageHandler) HandlerPatch(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(DefaultResponse{"Error", "Only PATCH method allowed"})
+		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: "Only PATCH method allowed"})
 		return
 	}
 }
-func HandlerRemove(w http.ResponseWriter, r *http.Request) {
+func (s *StorageHandler) HandlerRemove(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(DefaultResponse{"Error", "Only DELETE method allowed"})
+		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: "Only DELETE method allowed"})
 		return
 	}
 }
-func HandlerList(w http.ResponseWriter, r *http.Request) {
+func (s *StorageHandler) HandlerList(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(DefaultResponse{"Error", "Only GET method allowed"})
+		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: "Only GET method allowed"})
 		return
 	}
 }
-func HandlerReprioritize(w http.ResponseWriter, r *http.Request) {
+func (s *StorageHandler) HandlerReprioritize(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(DefaultResponse{"Error", "Only PATCH method allowed"})
+		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: "Only PATCH method allowed"})
 		return
 	}
 }

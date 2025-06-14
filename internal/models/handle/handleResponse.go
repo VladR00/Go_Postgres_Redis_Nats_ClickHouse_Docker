@@ -1,4 +1,4 @@
-package handlers
+package response
 
 import "time" //time.Now().Unix() - may be => can be replaced by INTEGER
 

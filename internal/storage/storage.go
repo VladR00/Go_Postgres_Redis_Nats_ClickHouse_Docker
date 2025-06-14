@@ -1,16 +1,28 @@
-package postgres
+package storage
 
 import (
 	"context"
 	"fmt"
 	config "gopostgres/internal/config"
+	postgres "gopostgres/internal/storage/requestStorage"
 	"log"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-var DB *pgxpool.Pool
+type Storage struct {
+	Db *pgxpool.Pool
+}
+
+func NewStorage(database *pgxpool.Pool) *Storage {
+	return &Storage{Db: database}
+}
+
+func (s *Storage) Initiate() {
+	postgres.NewStoragePostgres(s.Db).CreateTable()
+	log.Println("Tables successfully initiated")
+}
 
 func ConnectDB() (*pgxpool.Pool, error) {
 	cfg, err := config.LoadConfig()
@@ -28,11 +40,11 @@ func ConnectDB() (*pgxpool.Pool, error) {
 
 	pool, err := pgxpool.NewWithConfig(context.Background(), poolConfig)
 	if err != nil {
-		log.Panic(err)
+		return nil, err
 	}
 
 	if err := pingDB(pool); err != nil {
-		log.Panic(err)
+		return nil, err
 	}
 
 	return pool, nil
