@@ -10,6 +10,7 @@ type Config struct {
 	Password string `json:"pass"`
 	Host     string `json:"host"`
 	DbName   string `json:"dbname"`
+	PoolSize int32  `json:"poolsize"`
 }
 
 var (

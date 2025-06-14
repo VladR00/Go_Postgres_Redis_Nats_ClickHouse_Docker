@@ -2,5 +2,6 @@
     "user": "",
     "pass": "",
     "host": "",
-    "dbname": ""
+    "dbname": "",
+    "poolsize": 10
 } 

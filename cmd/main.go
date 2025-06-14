@@ -11,13 +11,13 @@ import (
 )
 
 func main() {
-	conn, err := posgtres.ConnectDB()
+	db, err := posgtres.ConnectDB()
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer posgtres.CloseDB(conn)
+	defer db.Close()
 
-	log.Println("Posgtresql connected")
+	posgtres.DB = db
 
 	http.HandleFunc("/good/create", handlers.HandlerCreate)             // POST
 	http.HandleFunc("/good/update", handlers.HandlerPatch)              // PATCH
