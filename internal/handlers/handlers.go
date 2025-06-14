@@ -7,12 +7,10 @@ import (
 )
 
 func HandlerCreate(w http.ResponseWriter, r *http.Request) {
-	response := map[string]string{"error": "Only POST method allowed"}
-
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		json.NewEncoder(w).Encode(DefaultResponse{"Error", "Only POST method allowed"})
 		return
 	}
 
@@ -27,49 +25,40 @@ func HandlerCreate(w http.ResponseWriter, r *http.Request) {
 	// }
 
 	//data.AddQuote()
-
+	response := DefaultResponse{"Message", "Successfully"}
 	w.WriteHeader(http.StatusOK)
-	response = map[string]string{"message": "Quote successfully added"}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
 }
 func HandlerPatch(w http.ResponseWriter, r *http.Request) {
-	response := map[string]string{"error": "Only PATCH method allowed"}
-
-	if r.Method != http.MethodPatch {
+	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		json.NewEncoder(w).Encode(DefaultResponse{"Error", "Only PATCH method allowed"})
 		return
 	}
 }
 func HandlerRemove(w http.ResponseWriter, r *http.Request) {
-	response := map[string]string{"error": "Only DELETE method allowed"}
-
-	if r.Method != http.MethodDelete {
+	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		json.NewEncoder(w).Encode(DefaultResponse{"Error", "Only DELETE method allowed"})
 		return
 	}
 }
 func HandlerList(w http.ResponseWriter, r *http.Request) {
-	response := map[string]string{"error": "Only GET method allowed"}
-
-	if r.Method != http.MethodGet {
+	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		json.NewEncoder(w).Encode(DefaultResponse{"Error", "Only GET method allowed"})
 		return
 	}
 }
 func HandlerReprioritize(w http.ResponseWriter, r *http.Request) {
-	response := map[string]string{"error": "Only PATCH method allowed"}
-
-	if r.Method != http.MethodPatch {
+	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		json.NewEncoder(w).Encode(DefaultResponse{"Error", "Only PATCH method allowed"})
 		return
 	}
 }

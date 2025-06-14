@@ -13,7 +13,7 @@ type Config struct {
 }
 
 var (
-	cfgPATH string = "./internal/first/config/config.json"
+	cfgPATH string = "../internal/config/config.json"
 )
 
 func LoadConfig() (Config, error) {

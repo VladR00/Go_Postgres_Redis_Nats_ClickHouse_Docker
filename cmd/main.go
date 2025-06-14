@@ -6,9 +6,19 @@ import (
 	"net/http"
 
 	handlers "gopostgres/internal/handlers"
+
+	posgtres "gopostgres/storage"
 )
 
 func main() {
+	conn, err := posgtres.ConnectDB()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer posgtres.CloseDB(conn)
+
+	log.Println("Posgtresql connected")
+
 	http.HandleFunc("/good/create", handlers.HandlerCreate)             // POST
 	http.HandleFunc("/good/update", handlers.HandlerPatch)              // PATCH
 	http.HandleFunc("/good/remove", handlers.HandlerRemove)             // DELETE

@@ -1,9 +1,9 @@
-package main
+package postgres
 
 import (
 	"context"
 	"fmt"
-	config "gopostgres/internal/first/config"
+	config "gopostgres/internal/config"
 	"log"
 
 	"github.com/jackc/pgx/v5"
@@ -27,18 +27,13 @@ func ConnectDB() (*pgx.Conn, error) {
 	return conn, nil
 }
 
+func CloseDB(conn *pgx.Conn) {
+	conn.Close(context.Background())
+}
+
 func pingDB(conn *pgx.Conn) error {
 	if err := conn.Ping(context.Background()); err != nil {
 		return err
 	}
 	return nil
-}
-
-func main() {
-	conn, err := ConnectDB()
-	if err != nil {
-		log.Panic(err)
-	}
-	defer conn.Close(context.Background())
-	log.Println("posgtresql connected")
 }
