@@ -1,4 +1,4 @@
-package postgres
+package main
 
 import (
 	"context"
@@ -14,7 +14,7 @@ func ConnectDB() (*pgx.Conn, error) {
 	if err != nil {
 		log.Panic(err)
 	}
-	dbURL := fmt.Sprintf("postgres://%s:%s@%s:5042/%s", cfg.User, cfg.Password, cfg.Host, cfg.DbName)
+	dbURL := fmt.Sprintf("postgres://%s:%s@%s:5042/%s?sslmode=disable", cfg.User, cfg.Password, cfg.Host, cfg.DbName)
 
 	conn, err := pgx.Connect(context.Background(), dbURL)
 	if err != nil {
@@ -32,4 +32,13 @@ func pingDB(conn *pgx.Conn) error {
 		return err
 	}
 	return nil
+}
+
+func main() {
+	conn, err := ConnectDB()
+	if err != nil {
+		log.Panic(err)
+	}
+	defer conn.Close(context.Background())
+	log.Println("posgtresql connected")
 }
