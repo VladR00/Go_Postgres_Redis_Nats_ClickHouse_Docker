@@ -7,7 +7,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	response "gopostgres/internal/models/handle"
+	response "gopostgres/internal/domain/models/handle"
 )
 
 type StoragePostgres struct {
@@ -18,7 +18,7 @@ func NewStoragePostgres(storage *pgxpool.Pool) *StoragePostgres {
 	return &StoragePostgres{Db: storage}
 }
 
-func (s *StoragePostgres) CreateTable() {
+func (s *StoragePostgres) CreateTable() { //migrations --
 	create1 := `CREATE TABLE IF NOT EXISTS 
 		projects(
 			id SERIAL PRIMARY KEY,
@@ -64,13 +64,15 @@ func (s *StoragePostgres) CreateTable() {
 	log.Println("Insert into projects: first")
 }
 
-func (s *StoragePostgres) UpdateOrCreate(request response.CreatePayload, id int) (*response.CreateResponse, error) { //create/good
+// передача TX(опционально), без response
+func (s *StoragePostgres) Upsert(request response.CreatePayload, id int) (*response.CreateResponse, error) { //create/good
 	tx, err := s.Db.Begin(context.Background())
 	if err != nil {
 		log.Println("Transaction begin error")
 		return nil, err
 	}
 
+	//select for update // блокировка таблиц
 	//take priority
 
 	insertcreategoods := `INSERT INTO goods(name, description, project_id, priority, removed)
@@ -90,7 +92,7 @@ func (s *StoragePostgres) UpdateOrCreate(request response.CreatePayload, id int)
 		}
 		log.Println("Transaction commited.")
 	}
-
+	//без звезды
 	selectgoods := `SELECT * FROM goods 
 	WHERE name = $1 AND project_id = $2
 	ORDER BY id DESC

@@ -3,8 +3,8 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
-	response "gopostgres/internal/models/handle"
-	postgres "gopostgres/internal/storage/requestStorage"
+	response "gopostgres/internal/domain/models/handle"
+	postgres "gopostgres/pkg/storage/requestStorage"
 	"log"
 	"net/http"
 	"strconv"
@@ -52,8 +52,8 @@ func (s *StorageHandler) HandlerCreate(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: fmt.Sprintf("Decode URL path. Want /good/create/{int}: %v", err)})
 		return
 	}
-
-	answer, err := postgres.NewStoragePostgres(s.Db).UpdateOrCreate(request, id)
+	//usecase -> менеджер транзакций (begin/commit/rollback)
+	answer, err := postgres.NewStoragePostgres(s.Db).Upsert(request, id)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Header().Set("Content-Type", "application/json")

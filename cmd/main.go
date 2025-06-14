@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	handlers "gopostgres/internal/handlers"
-	storage "gopostgres/internal/storage"
+	storage "gopostgres/pkg/storage"
 )
 
 func main() {

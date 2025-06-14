@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	config "gopostgres/internal/config"
-	postgres "gopostgres/internal/storage/requestStorage"
+	postgres "gopostgres/pkg/storage/requestStorage"
 	"log"
 	"time"
 
@@ -24,6 +24,16 @@ func (s *Storage) Initiate() {
 	log.Println("Tables successfully initiated")
 }
 
+//2 стоража package
+// type Storage intreface{
+// 	Initiate()
+// 	Create(ctx) //
+// 	Delete()
+// 	Update()
+// 	Get()
+// }
+
+// ctxx
 func ConnectDB() (*pgxpool.Pool, error) {
 	cfg, err := config.LoadConfig()
 	if err != nil {
