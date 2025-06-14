@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	response "gopostgres/internal/models/handle"
@@ -21,7 +22,7 @@ func (s *StoragePostgres) CreateTable() {
 	create1 := `CREATE TABLE IF NOT EXISTS 
 		projects(
 			id SERIAL PRIMARY KEY,
-			name VARCHAR(255),
+			name VARCHAR(255) NOT NULL,
 			created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP
 		)`
 	if _, err := s.Db.Exec(context.Background(), create1); err != nil {
@@ -31,11 +32,11 @@ func (s *StoragePostgres) CreateTable() {
 	create2 := `CREATE TABLE IF NOT EXISTS
 		goods(
 			id SERIAL PRIMARY KEY,
-			project_id INTEGER,
-			name VARCHAR(255),
+			project_id INTEGER NOT NULL,
+			name VARCHAR(255) NOT NULL,
 			description VARCHAR(255),
-			priority INTEGER,
-			removed BOOL,
+			priority INTEGER NOT NULL,
+			removed BOOL NOT NULL,
 			created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
 			FOREIGN KEY (project_id) REFERENCES projects(id) 
 		)`
@@ -63,6 +64,48 @@ func (s *StoragePostgres) CreateTable() {
 	log.Println("Insert into projects: first")
 }
 
-func (s *StoragePostgres) CreateGood(request response.CreatePayload) {
+func (s *StoragePostgres) UpdateOrCreate(request response.CreatePayload, id int) (*response.CreateResponse, error) { //create/good
+	tx, err := s.Db.Begin(context.Background())
+	if err != nil {
+		log.Println("Transaction begin error")
+		return nil, err
+	}
 
+	//take priority
+
+	insertcreategoods := `INSERT INTO goods(name, description, project_id, priority, removed)
+							VALUES($1, $2, $3, $4, $5)`
+
+	_, err = tx.Exec(context.Background(), insertcreategoods, request.Name, "", id, 1, false)
+	if err != nil {
+		if rollbackErr := tx.Rollback(context.Background()); rollbackErr != nil {
+			log.Println("Transaction rollback error:")
+			log.Println(err)
+		}
+		log.Println("Transaction rollbacked.")
+	} else {
+		if commitErr := tx.Commit(context.Background()); commitErr != nil {
+			log.Println("Transaction commit error")
+			log.Println(err)
+		}
+		log.Println("Transaction commited.")
+	}
+
+	selectgoods := `SELECT * FROM goods 
+	WHERE name = $1 AND project_id = $2
+	ORDER BY id DESC
+	LIMIT 1;`
+
+	var answer response.CreateResponse
+
+	err = s.Db.QueryRow(context.Background(), selectgoods, request.Name, id).Scan(&answer.Goods.ID, &answer.Goods.ProjectID, &answer.Goods.Name, &answer.Goods.Description, &answer.Goods.Priority, &answer.Goods.Removed, &answer.Goods.CreatedAt)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			log.Println("Good not found.")
+		} else {
+			log.Println("Query failed: ", err)
+		}
+		return nil, err
+	}
+	return &answer, nil
 }

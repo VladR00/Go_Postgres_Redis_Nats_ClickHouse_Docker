@@ -7,11 +7,7 @@ type DefaultResponse struct {
 	Message string `json:"message"` // Message
 }
 
-type CreatePayload struct { //POST, URL: projectId=int;
-	Name string `json:"name"`
-}
-
-type CreateResponse struct { //POST
+type Goods struct {
 	ID          int       `json:"id"`
 	ProjectID   int       `json:"projectId"`
 	Name        string    `json:"name"`
@@ -19,6 +15,14 @@ type CreateResponse struct { //POST
 	Priority    int       `json:"priority"`
 	Removed     bool      `json:"removed"`   //false
 	CreatedAt   time.Time `json:"createdAt"` //time.Now().Unix() - may be
+}
+
+type CreatePayload struct { //POST, URL: projectId=int;
+	Name string `json:"name"`
+}
+
+type CreateResponse struct { //POST
+	Goods Goods
 }
 
 type UpdatePayload struct { //PATCH, URL: id=int & projectId=int //check is exist
@@ -27,13 +31,7 @@ type UpdatePayload struct { //PATCH, URL: id=int & projectId=int //check is exis
 }
 
 type UpdateResponse struct { //PATCH
-	ID          int       `json:"id"`
-	ProjectID   int       `json:"projectId"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	Priority    int       `json:"priority"`
-	Removed     bool      `json:"removed"`   //false
-	CreatedAt   time.Time `json:"createdAt"` //time.Now().Unix() - may be
+	Goods Goods
 }
 
 //Payload(nil); URL: id=int & projectId=int //check is exist
@@ -56,16 +54,6 @@ type Meta struct {
 	Removed int `json:"removed"`
 	Limit   int `json:"limit"`
 	Offset  int `json:"offset"`
-}
-
-type Goods struct {
-	ID          int       `json:"id"`
-	ProjectID   int       `json:"projectId"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	Priority    int       `json:"priority"`
-	Removed     bool      `json:"removed"`   //false
-	CreatedAt   time.Time `json:"createdAt"` //time.Now().Unix() - may be
 }
 
 type ReoprioritizePayload struct { //PATCH, URL: id=int & projectId=int // check is exist
