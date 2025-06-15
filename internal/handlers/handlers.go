@@ -5,6 +5,7 @@ import (
 	"fmt"
 	response "gopostgres/internal/domain/models/handle"
 	postgres "gopostgres/pkg/storage/requestStorage"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -63,13 +64,53 @@ func (s *StorageHandler) HandlerCreate(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(answer)
 }
+
 func (s *StorageHandler) HandlerPatch(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
+	if r.Method != http.MethodPatch {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: "Only PATCH method allowed"})
 		return
 	}
+
+	var request response.UpdatePayload
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: "Decode. Want 'name':'string', 'description':'string'. Second - optional."})
+		return
+	}
+
+	if request.Name == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: "Decode. Want 'name':'string'"})
+		return
+	}
+	log.Println("name,description")
+	log.Println(request.Name)
+	log.Println(request.Description)
+	id, err := strconv.Atoi(strings.TrimPrefix(r.URL.Path, "/good/update/"))
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: fmt.Sprintf("Decode URL path. Want /good/update/{int}: %v", err)})
+		return
+	}
+
+	answer, err := postgres.NewStoragePostgres(s.Db).Update(request, id)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		log.Println(err)
+		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: fmt.Sprintf("Bad request: %v", err)})
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(answer)
 }
 func (s *StorageHandler) HandlerRemove(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {

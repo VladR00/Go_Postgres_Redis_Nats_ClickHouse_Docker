@@ -137,6 +137,55 @@ func (s *StoragePostgres) Create(request response.CreatePayload, id int) (*respo
 	return &answer, nil
 }
 
+func (s *StoragePostgres) Update(request response.UpdatePayload, id int) (*response.Goods, error) { //update/good PATCH
+	tx, err := s.Db.Begin(context.Background())
+	if err != nil {
+		log.Println("Transaction begin error")
+		return nil, err
+	}
+	_, err = tx.Exec(context.Background(), `SELECT * FROM goods WHERE name=$1 FOR UPDATE`, request.Name)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			log.Println("Goods not found.")
+			if rollbackErr := tx.Rollback(context.Background()); rollbackErr != nil {
+				log.Println("Transaction rollback error:", err)
+				return nil, err
+			}
+			log.Println("Transaction rollbacked.")
+			return nil, err
+
+		} else {
+			log.Println("Query failed: ", err)
+			if rollbackErr := tx.Rollback(context.Background()); rollbackErr != nil {
+				log.Println("Transaction rollback error:", err)
+				return nil, err
+			}
+			log.Println("Transaction rollbacked.")
+			return nil, err
+		}
+	}
+	updategoods := `UPDATE goods SET description=$2 WHERE name=$1 RETURNING id, project_id, name, description, priority, removed, created_at`
+
+	var answer response.Goods
+
+	err = tx.QueryRow(context.Background(), updategoods, request.Name, request.Description).Scan(&answer.ID, &answer.ProjectID, &answer.Name, &answer.Description, &answer.Priority, &answer.Removed, &answer.CreatedAt)
+	if err != nil {
+		if rollbackErr := tx.Rollback(context.Background()); rollbackErr != nil {
+			log.Println("Transaction rollback error:", err)
+			return nil, err
+		}
+		log.Println("Transaction rollbacked.")
+		return nil, err
+	} else {
+		if commitErr := tx.Commit(context.Background()); commitErr != nil {
+			log.Println("Transaction commit error:", err)
+			return nil, err
+		}
+		log.Println("Transaction commited.")
+	}
+	return &answer, nil
+}
+
 // func (s *StoragePostgres) GetGoodByID(id int) (*response.Goods, error) {
 // 	selectgoods := `SELECT id, project_id, name, description, priority, removed, created_at FROM goods
 // 	WHERE name = $1 AND project_id = $2
