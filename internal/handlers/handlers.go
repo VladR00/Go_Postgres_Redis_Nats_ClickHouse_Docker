@@ -5,7 +5,6 @@ import (
 	"fmt"
 	response "gopostgres/internal/domain/models/handle"
 	postgres "gopostgres/pkg/storage/requestStorage"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -45,7 +44,6 @@ func (s *StorageHandler) HandlerCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	id, err := strconv.Atoi(strings.TrimPrefix(r.URL.Path, "/good/create/"))
-	log.Println(id)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Header().Set("Content-Type", "application/json")
@@ -53,7 +51,7 @@ func (s *StorageHandler) HandlerCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	//usecase -> менеджер транзакций (begin/commit/rollback)
-	answer, err := postgres.NewStoragePostgres(s.Db).Upsert(request, id)
+	answer, err := postgres.NewStoragePostgres(s.Db).Create(request, id)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Header().Set("Content-Type", "application/json")

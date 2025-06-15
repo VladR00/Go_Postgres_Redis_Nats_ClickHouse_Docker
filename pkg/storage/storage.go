@@ -24,7 +24,6 @@ func (s *Storage) Initiate() {
 	log.Println("Tables successfully initiated")
 }
 
-//2 стоража package
 // type Storage intreface{
 // 	Initiate()
 // 	Create(ctx) //

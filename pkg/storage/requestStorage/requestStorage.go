@@ -33,7 +33,7 @@ func (s *StoragePostgres) CreateTable() { //migrations --
 		goods(
 			id SERIAL PRIMARY KEY,
 			project_id INTEGER NOT NULL,
-			name VARCHAR(255) NOT NULL,
+			name VARCHAR(255) UNIQUE NOT NULL,
 			description VARCHAR(255),
 			priority INTEGER NOT NULL,
 			removed BOOL NOT NULL,
@@ -65,49 +65,94 @@ func (s *StoragePostgres) CreateTable() { //migrations --
 }
 
 // передача TX(опционально), без response
-func (s *StoragePostgres) Upsert(request response.CreatePayload, id int) (*response.CreateResponse, error) { //create/good
+// func (s *StoragePostgres) Upsert(request response.CreatePayload, id int) (*response.Goods, error) { //create/good
+// 	tx, err := s.Db.Begin(context.Background())
+// 	if err != nil {
+// 		log.Println("Transaction begin error")
+// 		return nil, err
+// 	}
+
+// 	//select for update // блокировка таблиц
+// 	//take priority
+
+// 	insertcreategoods := `INSERT INTO goods(name, description, project_id, priority, removed)
+// 							VALUES($1, $2, $3, $4, $5) RETURNING id, project_id, name, description, priority, removed, created_at`
+
+// 	_, err = tx.Exec(context.Background(), insertcreategoods, request.Name, "", id, 1, false)
+// 	if err != nil {
+// 		if rollbackErr := tx.Rollback(context.Background()); rollbackErr != nil {
+// 			log.Println("Transaction rollback error:")
+// 			log.Println(err)
+// 		}
+// 		log.Println("Transaction rollbacked.")
+// 	} else {
+// 		if commitErr := tx.Commit(context.Background()); commitErr != nil {
+// 			log.Println("Transaction commit error")
+// 			log.Println(err)
+// 		}
+// 		log.Println("Transaction commited.")
+// 	}
+// }
+
+func (s *StoragePostgres) Create(request response.CreatePayload, id int) (*response.Goods, error) { //create/good
 	tx, err := s.Db.Begin(context.Background())
 	if err != nil {
 		log.Println("Transaction begin error")
 		return nil, err
 	}
 
-	//select for update // блокировка таблиц
-	//take priority
+	forupdate := `SELECT COALESCE(MAX(priority), 0) + 1 FROM goods` //COALESCE get 2 val and return first NOT NULL with adding 1
+	var pr int
+	err = tx.QueryRow(context.Background(), forupdate).Scan(&pr)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			pr = 1
+			log.Println("Goods not found.", pr)
+		} else {
+			log.Println("Query failed: ", err)
+			return nil, err
+		}
+	}
 
 	insertcreategoods := `INSERT INTO goods(name, description, project_id, priority, removed)
-							VALUES($1, $2, $3, $4, $5)`
+							VALUES($1, $2, $3, $4, $5) RETURNING id, project_id, name, description, priority, removed, created_at`
 
-	_, err = tx.Exec(context.Background(), insertcreategoods, request.Name, "", id, 1, false)
+	var answer response.Goods
+
+	err = tx.QueryRow(context.Background(), insertcreategoods, request.Name, "", id, pr, false).Scan(&answer.ID, &answer.ProjectID, &answer.Name, &answer.Description, &answer.Priority, &answer.Removed, &answer.CreatedAt)
 	if err != nil {
 		if rollbackErr := tx.Rollback(context.Background()); rollbackErr != nil {
 			log.Println("Transaction rollback error:")
-			log.Println(err)
+			return nil, err
 		}
 		log.Println("Transaction rollbacked.")
+		return nil, err
 	} else {
 		if commitErr := tx.Commit(context.Background()); commitErr != nil {
 			log.Println("Transaction commit error")
-			log.Println(err)
+			return nil, err
 		}
 		log.Println("Transaction commited.")
 	}
-	//без звезды
-	selectgoods := `SELECT * FROM goods 
-	WHERE name = $1 AND project_id = $2
-	ORDER BY id DESC
-	LIMIT 1;`
-
-	var answer response.CreateResponse
-
-	err = s.Db.QueryRow(context.Background(), selectgoods, request.Name, id).Scan(&answer.Goods.ID, &answer.Goods.ProjectID, &answer.Goods.Name, &answer.Goods.Description, &answer.Goods.Priority, &answer.Goods.Removed, &answer.Goods.CreatedAt)
-	if err != nil {
-		if err == pgx.ErrNoRows {
-			log.Println("Good not found.")
-		} else {
-			log.Println("Query failed: ", err)
-		}
-		return nil, err
-	}
 	return &answer, nil
 }
+
+// func (s *StoragePostgres) GetGoodByID(id int) (*response.Goods, error) {
+// 	selectgoods := `SELECT id, project_id, name, description, priority, removed, created_at FROM goods
+// 	WHERE name = $1 AND project_id = $2
+// 	ORDER BY id DESC
+// 	LIMIT 1;`
+
+// 	var answer response.Goods
+
+// 	err := s.Db.QueryRow(context.Background(), selectgoods, request.Name, id).Scan(&answer.ID, &answer.ProjectID, &answer.Name, &answer.Description, &answer.Priority, &answer.Removed, &answer.CreatedAt)
+// 	if err != nil {
+// 		if err == pgx.ErrNoRows {
+// 			log.Println("Good not found.")
+// 		} else {
+// 			log.Println("Query failed: ", err)
+// 		}
+// 		return nil, err
+// 	}
+// 	return &answer, nil
+// }
