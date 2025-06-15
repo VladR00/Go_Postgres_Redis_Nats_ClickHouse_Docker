@@ -118,7 +118,6 @@ func (s *StorageHandler) HandlerRemove(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	idstr := strings.TrimPrefix(r.URL.Path, "/good/remove/")
-	log.Println(idstr)
 	idstrsplit := strings.Split(idstr, "&")
 	if len(idstrsplit) < 2 {
 		w.WriteHeader(http.StatusBadRequest)
@@ -153,12 +152,62 @@ func (s *StorageHandler) HandlerRemove(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(answer)
 }
 func (s *StorageHandler) HandlerList(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
+	if r.Method != http.MethodGet {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: "Only GET method allowed"})
 		return
 	}
+
+	idstr := strings.TrimPrefix(r.URL.Path, "/goods/list/")
+	idstrsplit := strings.Split(idstr, "&")
+	var limit, offset int
+	if len(idstrsplit) < 2 {
+		limit, err := strconv.Atoi(idstr)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: fmt.Sprintf(`Decode URL path. Want /goods/list/{int}&{int}: %v`, err)})
+			return
+		}
+		offset = 1
+		answer, err := postgres.NewStoragePostgres(s.Db).List(limit, offset)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: fmt.Sprintf("Bad request: %v", err)})
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(answer)
+		return
+	}
+	limit, err := strconv.Atoi(idstrsplit[0])
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: fmt.Sprintf(`Decode URL path. Want /goods/list/{int}&{int}: %v`, err)})
+		return
+	}
+
+	offset, err = strconv.Atoi(idstrsplit[1])
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: fmt.Sprintf(`Decode URL path. Want /goods/list/{int}&{int}: %v`, err)})
+		return
+	}
+	answer, err := postgres.NewStoragePostgres(s.Db).List(limit, offset)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: fmt.Sprintf("Bad request: %v", err)})
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(answer)
 }
 func (s *StorageHandler) HandlerReprioritize(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {

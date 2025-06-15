@@ -20,11 +20,11 @@ func main() {
 
 	storageHanlder := handlers.NewStorageHandler(db)
 
-	http.HandleFunc("/good/create/", storageHanlder.HandlerCreate)            // POST
-	http.HandleFunc("/good/update/", storageHanlder.HandlerPatch)             // PATCH
-	http.HandleFunc("/good/remove/", storageHanlder.HandlerRemove)            // DELETE
-	http.HandleFunc("/goods/list", storageHanlder.HandlerList)                // GET
-	http.HandleFunc("/good/reprioritize", storageHanlder.HandlerReprioritize) // PATCH
+	http.HandleFunc("/good/create/", storageHanlder.HandlerCreate)             // POST
+	http.HandleFunc("/good/update/", storageHanlder.HandlerPatch)              // PATCH
+	http.HandleFunc("/good/remove/", storageHanlder.HandlerRemove)             // DELETE
+	http.HandleFunc("/goods/list/", storageHanlder.HandlerList)                // GET
+	http.HandleFunc("/good/reprioritize/", storageHanlder.HandlerReprioritize) // PATCH
 
 	fmt.Println("Server start at 8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))

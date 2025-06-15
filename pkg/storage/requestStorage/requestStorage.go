@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	response "gopostgres/internal/domain/models/handle"
@@ -100,19 +101,6 @@ func (s *StoragePostgres) Create(request response.CreatePayload, id int) (*respo
 		return nil, err
 	}
 
-	// forupdate := `` //COALESCE get 2 val and return first NOT NULL with adding 1
-	// var pr int
-	// err = tx.QueryRow(context.Background(), forupdate).Scan(&pr)
-	// if err != nil {
-	// 	if err == pgx.ErrNoRows {
-	// 		pr = 1
-	// 		log.Println("Goods not found.", pr)
-	// 	} else {
-	// 		log.Println("Query failed: ", err)
-	// 		return nil, err
-	// 	}
-	// }
-
 	insertcreategoods := `	WITH S AS (SELECT * FROM goods FOR UPDATE)
 							INSERT INTO goods(name, description, project_id, priority, removed)
 							VALUES($1, $2, $3, (SELECT COALESCE(MAX(priority), 0) + 1 FROM goods), $4) RETURNING id, project_id, name, description, priority, removed, created_at`
@@ -197,22 +185,51 @@ func (s *StoragePostgres) Remove(id int, projectid int) (*response.DeleteRespons
 	return &answer, nil
 }
 
-// func (s *StoragePostgres) GetGoodByID(id int) (*response.Goods, error) {
-// 	selectgoods := `SELECT id, project_id, name, description, priority, removed, created_at FROM goods
-// 	WHERE name = $1 AND project_id = $2
-// 	ORDER BY id DESC
-// 	LIMIT 1;`
+func (s *StoragePostgres) List(limit int, offset int) (*response.GetListResponse, error) { //goods/remove GET
+	var answer response.GetListResponse
+	answer.Meta.Total = 0
+	answer.Meta.Limit = limit
+	answer.Meta.Offset = offset
 
-// 	var answer response.Goods
+	removegoods := `SELECT id, project_id, name, description, priority, removed, created_at FROM goods
+					WHERE id >= $1
+					ORDER BY id
+					LIMIT $2`
 
-// 	err := s.Db.QueryRow(context.Background(), selectgoods, request.Name, id).Scan(&answer.ID, &answer.ProjectID, &answer.Name, &answer.Description, &answer.Priority, &answer.Removed, &answer.CreatedAt)
-// 	if err != nil {
-// 		if err == pgx.ErrNoRows {
-// 			log.Println("Good not found.")
-// 		} else {
-// 			log.Println("Query failed: ", err)
-// 		}
-// 		return nil, err
-// 	}
-// 	return &answer, nil
-// }
+	rows, err := s.Db.Query(context.Background(), removegoods, offset, limit)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return &answer, nil
+		} else {
+			return nil, err
+		}
+	}
+	defer rows.Close()
+
+	var gods []response.Goods
+	removed := 0
+	count := 0
+
+	for rows.Next() {
+		var god response.Goods
+		if err := rows.Scan(&god.ID, &god.ProjectID, &god.Name, &god.Description, &god.Priority, &god.Removed, &god.CreatedAt); err != nil {
+			log.Println("Err scan rows:", err)
+			return nil, err
+		}
+		if god.Removed {
+			removed++
+		}
+		gods = append(gods, god)
+		count++
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	answer.Meta.Total = count
+	answer.Meta.Removed = removed
+	answer.Goods = gods
+
+	return &answer, nil
+}
