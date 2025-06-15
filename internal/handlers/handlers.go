@@ -88,9 +88,7 @@ func (s *StorageHandler) HandlerPatch(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: "Decode. Want 'name':'string'"})
 		return
 	}
-	log.Println("name,description")
-	log.Println(request.Name)
-	log.Println(request.Description)
+
 	id, err := strconv.Atoi(strings.TrimPrefix(r.URL.Path, "/good/update/"))
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -113,12 +111,46 @@ func (s *StorageHandler) HandlerPatch(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(answer)
 }
 func (s *StorageHandler) HandlerRemove(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
+	if r.Method != http.MethodDelete {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: "Only DELETE method allowed"})
 		return
 	}
+	idstr := strings.TrimPrefix(r.URL.Path, "/good/remove/")
+	log.Println(idstr)
+	idstrsplit := strings.Split(idstr, "&")
+	if len(idstrsplit) < 2 {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: `Decode URL path. Want /good/remove/{int}&{int}`})
+		return
+	}
+	id, err := strconv.Atoi(idstrsplit[0])
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: fmt.Sprintf(`Decode URL path. Want /good/remove/{int}&{int}: %v`, err)})
+		return
+	}
+
+	projectid, err := strconv.Atoi(idstrsplit[1])
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: fmt.Sprintf(`Decode URL path. Want /good/remove/{int}&{int}: %v`, err)})
+		return
+	}
+	answer, err := postgres.NewStoragePostgres(s.Db).Remove(id, projectid)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: fmt.Sprintf("Bad request: %v", err)})
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(answer)
 }
 func (s *StorageHandler) HandlerList(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {

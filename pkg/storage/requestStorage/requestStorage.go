@@ -4,7 +4,6 @@ import (
 	"context"
 	"log"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	response "gopostgres/internal/domain/models/handle"
@@ -101,25 +100,26 @@ func (s *StoragePostgres) Create(request response.CreatePayload, id int) (*respo
 		return nil, err
 	}
 
-	forupdate := `SELECT COALESCE(MAX(priority), 0) + 1 FROM goods` //COALESCE get 2 val and return first NOT NULL with adding 1
-	var pr int
-	err = tx.QueryRow(context.Background(), forupdate).Scan(&pr)
-	if err != nil {
-		if err == pgx.ErrNoRows {
-			pr = 1
-			log.Println("Goods not found.", pr)
-		} else {
-			log.Println("Query failed: ", err)
-			return nil, err
-		}
-	}
+	// forupdate := `` //COALESCE get 2 val and return first NOT NULL with adding 1
+	// var pr int
+	// err = tx.QueryRow(context.Background(), forupdate).Scan(&pr)
+	// if err != nil {
+	// 	if err == pgx.ErrNoRows {
+	// 		pr = 1
+	// 		log.Println("Goods not found.", pr)
+	// 	} else {
+	// 		log.Println("Query failed: ", err)
+	// 		return nil, err
+	// 	}
+	// }
 
-	insertcreategoods := `INSERT INTO goods(name, description, project_id, priority, removed)
-							VALUES($1, $2, $3, $4, $5) RETURNING id, project_id, name, description, priority, removed, created_at`
+	insertcreategoods := `	WITH S AS (SELECT * FROM goods FOR UPDATE)
+							INSERT INTO goods(name, description, project_id, priority, removed)
+							VALUES($1, $2, $3, (SELECT COALESCE(MAX(priority), 0) + 1 FROM goods), $4) RETURNING id, project_id, name, description, priority, removed, created_at`
 
 	var answer response.Goods
 
-	err = tx.QueryRow(context.Background(), insertcreategoods, request.Name, "", id, pr, false).Scan(&answer.ID, &answer.ProjectID, &answer.Name, &answer.Description, &answer.Priority, &answer.Removed, &answer.CreatedAt)
+	err = tx.QueryRow(context.Background(), insertcreategoods, request.Name, "", id, false).Scan(&answer.ID, &answer.ProjectID, &answer.Name, &answer.Description, &answer.Priority, &answer.Removed, &answer.CreatedAt)
 	if err != nil {
 		if rollbackErr := tx.Rollback(context.Background()); rollbackErr != nil {
 			log.Println("Transaction rollback error:")
@@ -143,28 +143,9 @@ func (s *StoragePostgres) Update(request response.UpdatePayload, id int) (*respo
 		log.Println("Transaction begin error")
 		return nil, err
 	}
-	_, err = tx.Exec(context.Background(), `SELECT * FROM goods WHERE name=$1 FOR UPDATE`, request.Name)
-	if err != nil {
-		if err == pgx.ErrNoRows {
-			log.Println("Goods not found.")
-			if rollbackErr := tx.Rollback(context.Background()); rollbackErr != nil {
-				log.Println("Transaction rollback error:", err)
-				return nil, err
-			}
-			log.Println("Transaction rollbacked.")
-			return nil, err
-
-		} else {
-			log.Println("Query failed: ", err)
-			if rollbackErr := tx.Rollback(context.Background()); rollbackErr != nil {
-				log.Println("Transaction rollback error:", err)
-				return nil, err
-			}
-			log.Println("Transaction rollbacked.")
-			return nil, err
-		}
-	}
-	updategoods := `UPDATE goods SET description=$2 WHERE name=$1 RETURNING id, project_id, name, description, priority, removed, created_at`
+	updategoods := `WITH S AS (SELECT * FROM goods WHERE name=$1 FOR UPDATE)
+					UPDATE goods SET description=$2 WHERE name=$1
+					RETURNING id, project_id, name, description, priority, removed, created_at`
 
 	var answer response.Goods
 
@@ -180,6 +161,36 @@ func (s *StoragePostgres) Update(request response.UpdatePayload, id int) (*respo
 		if commitErr := tx.Commit(context.Background()); commitErr != nil {
 			log.Println("Transaction commit error:", err)
 			return nil, err
+		}
+		log.Println("Transaction commited.")
+	}
+	return &answer, nil
+}
+
+func (s *StoragePostgres) Remove(id int, projectid int) (*response.DeleteResponse, error) { //goods/remove DELETE
+	tx, err := s.Db.Begin(context.Background())
+	if err != nil {
+		log.Println("Transaction begin error")
+		return nil, err
+	}
+	removegoods := `WITH S AS (SELECT removed FROM goods WHERE id = $1 AND project_id = $2  FOR UPDATE)
+					UPDATE goods SET removed=true WHERE id = $1 AND project_id = $2
+					RETURNING id, project_id, removed`
+
+	var answer response.DeleteResponse
+
+	err = tx.QueryRow(context.Background(), removegoods, id, projectid).Scan(&answer.ID, &answer.CampaignID, &answer.Removed)
+	if err != nil {
+		if rollbackErr := tx.Rollback(context.Background()); rollbackErr != nil {
+			log.Println("Transaction rollback error:", rollbackErr)
+			return nil, rollbackErr
+		}
+		log.Println("Transaction rollbacked.")
+		return nil, err
+	} else {
+		if commitErr := tx.Commit(context.Background()); commitErr != nil {
+			log.Println("Transaction commit error:", commitErr)
+			return nil, commitErr
 		}
 		log.Println("Transaction commited.")
 	}
