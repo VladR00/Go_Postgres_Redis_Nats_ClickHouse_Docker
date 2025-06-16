@@ -21,17 +21,9 @@ type CreatePayload struct { //POST, URL: projectId=int;
 	Name string `json:"name"`
 }
 
-type CreateResponse struct { //POST
-	Goods Goods
-}
-
 type UpdatePayload struct { //PATCH, URL: id=int & projectId=int //check is exist
 	Name        string `json:"name"` //check is nil (should fil)
 	Description string `json:"description"`
-}
-
-type UpdateResponse struct { //PATCH
-	Goods Goods
 }
 
 //Payload(nil); URL: id=int & projectId=int //check is exist
@@ -57,7 +49,7 @@ type Meta struct {
 }
 
 type ReoprioritizePayload struct { //PATCH, URL: id=int & projectId=int // check is exist
-	NewPriority int `json:"newPriority"`
+	NewPriority *int `json:"newPriority"`
 }
 
 type ReoprioritizeResponse struct {

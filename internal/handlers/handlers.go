@@ -210,10 +210,37 @@ func (s *StorageHandler) HandlerList(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(answer)
 }
 func (s *StorageHandler) HandlerReprioritize(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
+	if r.Method != http.MethodPatch {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: "Only PATCH method allowed"})
 		return
 	}
+
+	idstr := strings.TrimPrefix(r.URL.Path, "/good/reprioritize/")
+	idstrsplit := strings.Split(idstr, "&")
+	if len(idstrsplit) < 2 {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: `Decode URL path. Want /good/reprioritize/{int}&{int}`})
+		return
+	}
+
+	var request response.ReoprioritizePayload
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: "Decode. Want 'name':'string', 'description':'string'. Second - optional."})
+		return
+	}
+
+	if request.NewPriority == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: "Decode. Want 'name':'string'"})
+		return
+	}
+	priority := *request.NewPriority
+	//need to continue
 }
