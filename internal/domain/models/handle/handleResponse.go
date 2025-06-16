@@ -53,7 +53,7 @@ type ReoprioritizePayload struct { //PATCH, URL: id=int & projectId=int // check
 }
 
 type ReoprioritizeResponse struct {
-	Priorities Priorities `json:"priorities"`
+	Priorities []Priorities `json:"priorities"`
 }
 
 type Priorities struct {

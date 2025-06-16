@@ -233,3 +233,65 @@ func (s *StoragePostgres) List(limit int, offset int) (*response.GetListResponse
 
 	return &answer, nil
 }
+
+func (s *StoragePostgres) Reprioritize(id, projectid, priority int) (*response.ReoprioritizeResponse, error) { //good/reoprioritize PATCH
+	var answer response.ReoprioritizeResponse
+	tx, err := s.Db.Begin(context.Background())
+	if err != nil {
+		log.Println("Transaction begin error")
+		return nil, err
+	}
+	reprioritize := `WITH D AS (SELECT id FROM goods WHERE id >= $1 AND project_id = $2 FOR UPDATE),
+		S AS (SELECT id,	CASE 
+								WHEN row_number() OVER (ORDER BY id) = 1 THEN $3
+								ELSE $3 + row_number() OVER (ORDER BY id) - 1
+							END AS new_priority
+	FROM goods WHERE id >= $1 AND project_id = $2)
+
+	UPDATE goods SET
+	priority = S.new_priority 
+	FROM S 
+	WHERE goods.id = S.id AND project_id = $2
+	RETURNING goods.id, goods.priority`
+
+	rows, err := tx.Query(context.Background(), reprioritize, id, projectid, priority)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			if rollbackErr := tx.Rollback(context.Background()); rollbackErr != nil {
+				log.Println("Transaction rollback error:", rollbackErr)
+				return nil, err
+			}
+			log.Println("Transaction rollbacked.")
+		}
+		return nil, err
+	}
+	defer rows.Close()
+
+	var priorities []response.Priorities
+
+	for rows.Next() {
+		var priority response.Priorities
+		if err := rows.Scan(&priority.ID, &priority.Priority); err != nil {
+			log.Println("Err scan rows:", err)
+			return nil, err
+		}
+		priorities = append(priorities, priority)
+	}
+
+	if err := rows.Err(); err != nil {
+		if rollbackErr := tx.Rollback(context.Background()); rollbackErr != nil {
+			log.Println("Transaction rollback error:", rollbackErr)
+			return nil, err
+		}
+		log.Println("Transaction rollbacked.")
+		return nil, err
+	}
+	if commitErr := tx.Commit(context.Background()); commitErr != nil {
+		log.Println("Transaction commit error:", commitErr)
+		return nil, commitErr
+	}
+	log.Println("Transaction commited.")
+	answer.Priorities = priorities
+
+	return &answer, nil
+}

@@ -210,6 +210,18 @@ func (s *StorageHandler) HandlerList(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(answer)
 }
 func (s *StorageHandler) HandlerReprioritize(w http.ResponseWriter, r *http.Request) {
+	strerr := func(err error) {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: fmt.Sprintf(`Decode URL path. Want /good/reprioritize/{int}&{int}: %v`, err)})
+	}
+
+	dcoderr := func() {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: "Decode. Want 'newPriority':{int}"})
+	}
+
 	if r.Method != http.MethodPatch {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		w.Header().Set("Content-Type", "application/json")
@@ -229,18 +241,37 @@ func (s *StorageHandler) HandlerReprioritize(w http.ResponseWriter, r *http.Requ
 	var request response.ReoprioritizePayload
 
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: "Decode. Want 'name':'string', 'description':'string'. Second - optional."})
+		dcoderr()
 		return
 	}
 
 	if request.NewPriority == nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: "Decode. Want 'name':'string'"})
+		dcoderr()
 		return
 	}
+
+	id, err := strconv.Atoi(idstrsplit[0])
+	if err != nil {
+		strerr(err)
+		return
+	}
+
+	projectid, err := strconv.Atoi(idstrsplit[1])
+	if err != nil {
+		strerr(err)
+		return
+	}
+
 	priority := *request.NewPriority
-	//need to continue
+
+	answer, err := postgres.NewStoragePostgres(s.Db).Reprioritize(id, projectid, priority)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: fmt.Sprintf("Bad request: %v", err)})
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(answer)
 }
