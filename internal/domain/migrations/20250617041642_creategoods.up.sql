@@ -1,0 +1,11 @@
+CREATE TABLE IF NOT EXISTS
+		goods(
+			id SERIAL PRIMARY KEY,
+			project_id INTEGER NOT NULL,
+			name VARCHAR(255) UNIQUE NOT NULL,
+			description VARCHAR(255),
+			priority INTEGER NOT NULL,
+			removed BOOL NOT NULL,
+			created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+			FOREIGN KEY (project_id) REFERENCES projects(id) 
+		);

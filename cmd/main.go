@@ -2,11 +2,10 @@ package main
 
 import (
 	"fmt"
-	"log"
-	"net/http"
-
 	handlers "gopostgres/internal/handlers"
 	storage "gopostgres/pkg/storage"
+	"log"
+	"net/http"
 )
 
 func main() {
