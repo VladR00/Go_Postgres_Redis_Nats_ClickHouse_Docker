@@ -15,7 +15,7 @@ func main() {
 	}
 	defer db.Close()
 
-	storage.NewStorage(db).Initiate()
+	//storage.NewStorage(db).Initiate()
 
 	storageHanlder := handlers.NewStorageHandler(db)
 

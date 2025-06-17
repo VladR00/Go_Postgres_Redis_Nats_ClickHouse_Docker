@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	config "gopostgres/internal/config"
-	postgres "gopostgres/pkg/storage/requestStorage"
 	"log"
 	"time"
 
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -19,20 +21,20 @@ func NewStorage(database *pgxpool.Pool) *Storage {
 	return &Storage{Db: database}
 }
 
-func (s *Storage) Initiate() {
-	postgres.NewStoragePostgres(s.Db).CreateTable()
-	log.Println("Tables successfully initiated")
+// migrate -path ./internal/domain/migrations/ -database "postgres://user:12333@localhost:5042/test1?sslmode=disable" up
+func migrations(url string) error {
+	m, err := migrate.New("file://../internal/domain/migrations", url)
+	if err != nil {
+		return err
+	}
+	err = m.Up()
+	if err != nil && err != migrate.ErrNoChange {
+		return err
+	}
+	log.Println("Migrations applied successfully!")
+	return nil
 }
 
-// type Storage intreface{
-// 	Initiate()
-// 	Create(ctx) //
-// 	Delete()
-// 	Update()
-// 	Get()
-// }
-
-// ctxx
 func ConnectDB() (*pgxpool.Pool, error) {
 	cfg, err := config.LoadConfig()
 	if err != nil {
@@ -55,7 +57,9 @@ func ConnectDB() (*pgxpool.Pool, error) {
 	if err := pingDB(pool); err != nil {
 		return nil, err
 	}
-
+	if err := migrations(dbURL); err != nil {
+		return nil, err
+	}
 	return pool, nil
 }
 
