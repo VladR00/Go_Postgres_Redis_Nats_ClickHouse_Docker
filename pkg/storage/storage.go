@@ -21,9 +21,9 @@ func NewStorage(database *pgxpool.Pool) *Storage {
 	return &Storage{Db: database}
 }
 
-// migrate -path ./internal/domain/migrations/ -database "postgres://user:12333@localhost:5042/test1?sslmode=disable" up
+// migrate -path ./internal/domain/migrations/ -database "postgres://user:pass@localhost:5042/database?sslmode=disable" up
 func migrations(url string) error {
-	m, err := migrate.New("file://../internal/domain/migrations", url)
+	m, err := migrate.New("file://../internal/domain/migrations/postgresql", url)
 	if err != nil {
 		return err
 	}
@@ -35,7 +35,7 @@ func migrations(url string) error {
 	return nil
 }
 
-func ConnectDB() (*pgxpool.Pool, error) {
+func ConnectPostgreSQL() (*pgxpool.Pool, error) {
 	cfg, err := config.LoadConfig()
 	if err != nil {
 		log.Panic(err)

@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	db, err := storage.ConnectDB()
+	db, err := storage.ConnectPostgreSQL()
 	if err != nil {
 		log.Fatal(err)
 	}
