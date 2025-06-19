@@ -60,3 +60,13 @@ type Priorities struct {
 	ID       int `json:"id"`
 	Priority int `json:"priority"`
 }
+
+type NatsForClick struct {
+	Id          uint32    `json:"Id"`
+	ProjectId   uint32    `json:"ProjectId"`
+	Name        string    `json:"Name"`
+	Description string    `json:"Description"`
+	Priority    uint32    `json:"Priority"`
+	Removed     uint8     `json:"Removed"`
+	EventTime   time.Time `json:"EventTime"`
+}

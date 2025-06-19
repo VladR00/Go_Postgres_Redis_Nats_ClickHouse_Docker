@@ -17,8 +17,8 @@ type Storage struct {
 	Db *pgxpool.Pool
 }
 
-func NewStorage(database *pgxpool.Pool) *Storage {
-	return &Storage{Db: database}
+func NewStorage(db *pgxpool.Pool) *Storage {
+	return &Storage{Db: db}
 }
 
 // migrate -path ./internal/domain/migrations/ -database "postgres://user:pass@localhost:5042/database?sslmode=disable" up
@@ -31,7 +31,7 @@ func migrations(url string) error {
 	if err != nil && err != migrate.ErrNoChange {
 		return err
 	}
-	log.Println("Migrations applied successfully!")
+	log.Println("PostgreSql: Migrations applied.")
 	return nil
 }
 

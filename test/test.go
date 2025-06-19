@@ -83,15 +83,15 @@ func main() {
 			return
 		}
 
-		stmt, err := tx.Prepare("INSERT INTO logs (Id, ProjectId, Name, Description, Priority, Removed, EventTime) VALUES (?, ?, ?, ?, ?, ?, ?)")
+		insert, err := db.Prepare("INSERT INTO logs (Id, ProjectId, Name, Description, Priority, Removed, EventTime) VALUES (?, ?, ?, ?, ?, ?, ?)")
 		if err != nil {
 			log.Printf("Failed to prepare statement: %v", err)
 			tx.Rollback() // Откатим транзакцию в случае ошибки
 			return
 		}
-		defer stmt.Close()
+		defer insert.Close()
 
-		_, err = stmt.Exec(logMsg.Id, logMsg.ProjectId, logMsg.Name, logMsg.Description, logMsg.Priority, logMsg.Removed, logMsg.EventTime)
+		_, err = insert.Exec(logMsg.Id, logMsg.ProjectId, logMsg.Name, logMsg.Description, logMsg.Priority, logMsg.Removed, logMsg.EventTime)
 		if err != nil {
 			log.Printf("Failed to insert log into ClickHouse: %v", err)
 			tx.Rollback() // Откатим транзакцию в случае ошибки
