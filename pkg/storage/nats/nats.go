@@ -10,7 +10,7 @@ import (
 	"github.com/nats-io/nats.go"
 )
 
-func ConnectNats(database *sql.DB) (*nats.Conn, error) {
+func ConnectNats() (*nats.Conn, error) {
 	conn, err := nats.Connect("nats://localhost:4222")
 	if err != nil {
 		return nil, err

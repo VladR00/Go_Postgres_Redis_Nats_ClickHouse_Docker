@@ -11,14 +11,16 @@ import (
 	"strings"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/nats-io/nats.go"
 )
 
 type StorageHandler struct {
-	Db *pgxpool.Pool
+	DataBase *pgxpool.Pool
+	NatsConn *nats.Conn
 }
 
-func NewStorageHandler(storage *pgxpool.Pool) *StorageHandler {
-	return &StorageHandler{Db: storage}
+func NewStorageHandler(storage *pgxpool.Pool, nats *nats.Conn) *StorageHandler {
+	return &StorageHandler{DataBase: storage, NatsConn: nats}
 }
 
 func (s *StorageHandler) HandlerCreate(w http.ResponseWriter, r *http.Request) {

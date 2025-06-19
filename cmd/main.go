@@ -3,21 +3,26 @@ package main
 import (
 	"fmt"
 	handlers "gopostgres/internal/handlers"
-	storage "gopostgres/pkg/storage"
+	storagepostgresql "gopostgres/pkg/storage"
+	storageclickhouse "gopostgres/pkg/storage/clickhouse"
 	"log"
 	"net/http"
 )
 
 func main() {
-	db, err := storage.ConnectPostgreSQL()
+	postgresql, err := storagepostgresql.ConnectPostgreSQL()
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer db.Close()
+	defer postgresql.Close()
 
-	//storage.NewStorage(db).Initiate()
+	clickhouse, err := storageclickhouse.ConnectClickHouse()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer clickhouse.Close()
 
-	storageHanlder := handlers.NewStorageHandler(db)
+	storageHanlder := handlers.NewStorageHandler(postgresql, nats)
 
 	http.HandleFunc("/good/create/", storageHanlder.HandlerCreate)             // POST
 	http.HandleFunc("/good/update/", storageHanlder.HandlerPatch)              // PATCH
