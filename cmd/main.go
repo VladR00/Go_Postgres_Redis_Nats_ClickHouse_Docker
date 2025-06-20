@@ -5,6 +5,7 @@ import (
 	handlers "gopostgres/internal/handlers"
 	storagepostgresql "gopostgres/pkg/storage"
 	storageclickhouse "gopostgres/pkg/storage/clickhouse"
+	natspackage "gopostgres/pkg/storage/nats"
 	"log"
 	"net/http"
 )
@@ -21,6 +22,13 @@ func main() {
 		log.Fatal(err)
 	}
 	defer clickhouse.Close()
+
+	nats, err := natspackage.ConnectNats()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	natspackage.NatsSubscribes(nats, clickhouse)
 
 	storageHanlder := handlers.NewStorageHandler(postgresql, nats)
 

@@ -15,12 +15,12 @@ import (
 )
 
 type StorageHandler struct {
-	DataBase *pgxpool.Pool
+	Db       *pgxpool.Pool
 	NatsConn *nats.Conn
 }
 
 func NewStorageHandler(storage *pgxpool.Pool, nats *nats.Conn) *StorageHandler {
-	return &StorageHandler{DataBase: storage, NatsConn: nats}
+	return &StorageHandler{Db: storage, NatsConn: nats}
 }
 
 func (s *StorageHandler) HandlerCreate(w http.ResponseWriter, r *http.Request) {
