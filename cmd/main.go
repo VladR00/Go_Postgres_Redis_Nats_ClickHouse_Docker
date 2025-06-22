@@ -32,11 +32,11 @@ func main() {
 
 	storageHanlder := handlers.NewStorageHandler(postgresql, nats)
 
-	http.HandleFunc("/good/create/", storageHanlder.HandlerCreate)             // POST
+	http.HandleFunc("/good/create/", storageHanlder.HandlerCreate)             // POST	curl -X POST http://localhost:8080/good/create/1 -H "Content-Type: application/json" -d '{"name":"name"}' | jq
 	http.HandleFunc("/good/update/", storageHanlder.HandlerPatch)              // PATCH
 	http.HandleFunc("/good/remove/", storageHanlder.HandlerRemove)             // DELETE
-	http.HandleFunc("/goods/list/", storageHanlder.HandlerList)                // GET
-	http.HandleFunc("/good/reprioritize/", storageHanlder.HandlerReprioritize) // PATCH
+	http.HandleFunc("/goods/list/", storageHanlder.HandlerList)                // GET	curl -X GET http://localhost:8080/goods/list/100 | jq
+	http.HandleFunc("/good/reprioritize/", storageHanlder.HandlerReprioritize) // PATCH curl -X PATCH http://localhost:8080/good/reprioritize/1\&1 -H "Content-Type: application/json" -d '{"newPriority":1}' | jq
 
 	fmt.Println("Server start at 8080")
 	log.Fatal(http.ListenAndServe(":8080", nil))

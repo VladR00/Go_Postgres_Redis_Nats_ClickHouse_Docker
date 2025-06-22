@@ -57,7 +57,6 @@ func (s *StorageClickhouse) InsertLog(logs response.NatsForClick) error {
 				(Id, ProjectId, Name, Description, Priority, Removed, EventTime) 
 				VALUES (?, ?, ?, ?, ?, ?, ?)`)
 
-	//for _, logg := range logs {
 	_, err = tx.ExecContext(context.Background(), insert, logs.Id, logs.ProjectId, logs.Name, logs.Description, logs.Priority, logs.Removed, logs.EventTime)
 	if err != nil {
 		log.Println("Failed to insert log into ClickHouse: ", err)

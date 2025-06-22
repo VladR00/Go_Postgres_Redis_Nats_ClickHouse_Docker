@@ -81,19 +81,19 @@ func (s *StoragePostgres) Create(request response.CreatePayload, id int) (*respo
 	return &answer, nil
 }
 
-func (s *StoragePostgres) Update(request response.UpdatePayload, id int) (*response.Goods, error) { //update/good PATCH
+func (s *StoragePostgres) Update(request response.UpdatePayload, id int, projectid int) (*response.Goods, error) { //update/good PATCH
 	tx, err := s.Db.Begin(context.Background())
 	if err != nil {
 		log.Println("Transaction begin error")
 		return nil, err
 	}
 	updategoods := `WITH S AS (SELECT * FROM goods WHERE name=$1 FOR UPDATE)
-					UPDATE goods SET description=$2 WHERE name=$1
+					UPDATE goods SET description=$2, name=$1 WHERE id=$3 AND project_id=$4
 					RETURNING id, project_id, name, description, priority, removed, created_at`
 
 	var answer response.Goods
 
-	err = tx.QueryRow(context.Background(), updategoods, request.Name, request.Description).Scan(&answer.ID, &answer.ProjectID, &answer.Name, &answer.Description, &answer.Priority, &answer.Removed, &answer.CreatedAt)
+	err = tx.QueryRow(context.Background(), updategoods, request.Name, request.Description, id, projectid).Scan(&answer.ID, &answer.ProjectID, &answer.Name, &answer.Description, &answer.Priority, &answer.Removed, &answer.CreatedAt)
 	if err != nil {
 		if rollbackErr := tx.Rollback(context.Background()); rollbackErr != nil {
 			log.Println("Transaction rollback error:", err)

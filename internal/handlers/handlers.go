@@ -91,15 +91,31 @@ func (s *StorageHandler) HandlerPatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := strconv.Atoi(strings.TrimPrefix(r.URL.Path, "/good/update/"))
+	idstr := strings.TrimPrefix(r.URL.Path, "/good/update/")
+	idstrsplit := strings.Split(idstr, "&")
+	if len(idstrsplit) < 2 {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: `Decode URL path. Want /good/update/{int}&{int}`})
+		return
+	}
+	id, err := strconv.Atoi(idstrsplit[0])
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: fmt.Sprintf("Decode URL path. Want /good/update/{int}: %v", err)})
+		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: fmt.Sprintf(`Decode URL path. Want /good/update/{int}&{int}: %v`, err)})
 		return
 	}
 
-	answer, err := postgres.NewStoragePostgres(s.Db, s.NatsConn).Update(request, id)
+	projectid, err := strconv.Atoi(idstrsplit[1])
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: fmt.Sprintf(`Decode URL path. Want /good/update/{int}&{int}: %v`, err)})
+		return
+	}
+
+	answer, err := postgres.NewStoragePostgres(s.Db, s.NatsConn).Update(request, id, projectid)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Header().Set("Content-Type", "application/json")
