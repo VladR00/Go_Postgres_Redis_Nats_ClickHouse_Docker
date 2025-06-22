@@ -1,6 +1,16 @@
 package response
 
-import "time" //time.Now().Unix() - may be => can be replaced by INTEGER
+import (
+	"encoding/json"
+	"net/http"
+	"time"
+) //time.Now().Unix() - may be => can be replaced by INTEGER
+
+func (r DefaultResponse) Response(w http.ResponseWriter, header int) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(header)
+	json.NewEncoder(w).Encode(DefaultResponse{Type: r.Type, Message: r.Message})
+}
 
 type DefaultResponse struct {
 	Type    string `json:"type"`    // Error | Data | Message

@@ -25,40 +25,30 @@ func NewStorageHandler(storage *pgxpool.Pool, nats *nats.Conn) *StorageHandler {
 
 func (s *StorageHandler) HandlerCreate(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: "Only POST method allowed"})
+		response.DefaultResponse{Type: "Error", Message: "Only POST method allowed"}.Response(w, http.StatusMethodNotAllowed)
 		return
 	}
 	var request response.CreatePayload
 
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: "Decode. Want 'name':'string'"})
+		response.DefaultResponse{Type: "Error", Message: "Decode. Want 'name':'string'"}.Response(w, http.StatusBadRequest)
 		return
 	}
 
 	if request.Name == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: "Decode. Want 'name':'string'"})
+		response.DefaultResponse{Type: "Error", Message: "Decode. Want 'name':'string'"}.Response(w, http.StatusBadRequest)
 		return
 	}
 
 	id, err := strconv.Atoi(strings.TrimPrefix(r.URL.Path, "/good/create/"))
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: fmt.Sprintf("Decode URL path. Want /good/create/{int}: %v", err)})
+		response.DefaultResponse{Type: "Error", Message: fmt.Sprintf("Decode URL path. Want /good/create/{int}: %v", err)}.Response(w, http.StatusBadRequest)
 		return
 	}
-	//usecase -> менеджер транзакций (begin/commit/rollback)
+
 	answer, err := postgres.NewStoragePostgres(s.Db, s.NatsConn).Create(request, id)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: fmt.Sprintf("Bad request: %v", err)})
+		response.DefaultResponse{Type: "Error", Message: fmt.Sprintf("Bad request: %v", err)}.Response(w, http.StatusBadRequest)
 		return
 	}
 
@@ -69,58 +59,44 @@ func (s *StorageHandler) HandlerCreate(w http.ResponseWriter, r *http.Request) {
 
 func (s *StorageHandler) HandlerPatch(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPatch {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: "Only PATCH method allowed"})
+		response.DefaultResponse{Type: "Error", Message: "Only PATCH method allowed"}.Response(w, http.StatusMethodNotAllowed)
 		return
 	}
 
 	var request response.UpdatePayload
 
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: "Decode. Want 'name':'string', 'description':'string'. Second - optional."})
+		response.DefaultResponse{Type: "Error", Message: "Decode. Want 'name':'string', 'description':'string'. Second - optional."}.Response(w, http.StatusBadRequest)
 		return
 	}
 
 	if request.Name == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: "Decode. Want 'name':'string'"})
+		response.DefaultResponse{Type: "Error", Message: "Decode. Want 'name':'string'"}.Response(w, http.StatusBadRequest)
 		return
 	}
 
 	idstr := strings.TrimPrefix(r.URL.Path, "/good/update/")
 	idstrsplit := strings.Split(idstr, "&")
 	if len(idstrsplit) < 2 {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: `Decode URL path. Want /good/update/{int}&{int}`})
+		response.DefaultResponse{Type: "Error", Message: `Decode URL path. Want /good/update/{int}&{int}`}.Response(w, http.StatusBadRequest)
 		return
 	}
 	id, err := strconv.Atoi(idstrsplit[0])
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: fmt.Sprintf(`Decode URL path. Want /good/update/{int}&{int}: %v`, err)})
+		response.DefaultResponse{Type: "Error", Message: fmt.Sprintf(`Decode URL path. Want /good/update/{int}&{int}: %v`, err)}.Response(w, http.StatusBadRequest)
 		return
 	}
 
 	projectid, err := strconv.Atoi(idstrsplit[1])
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: fmt.Sprintf(`Decode URL path. Want /good/update/{int}&{int}: %v`, err)})
+		response.DefaultResponse{Type: "Error", Message: fmt.Sprintf(`Decode URL path. Want /good/update/{int}&{int}: %v`, err)}.Response(w, http.StatusBadRequest)
 		return
 	}
 
 	answer, err := postgres.NewStoragePostgres(s.Db, s.NatsConn).Update(request, id, projectid)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Header().Set("Content-Type", "application/json")
+		response.DefaultResponse{Type: "Error", Message: fmt.Sprintf("Bad request: %v", err)}.Response(w, http.StatusBadRequest)
 		log.Println(err)
-		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: fmt.Sprintf("Bad request: %v", err)})
 		return
 	}
 
@@ -130,39 +106,29 @@ func (s *StorageHandler) HandlerPatch(w http.ResponseWriter, r *http.Request) {
 }
 func (s *StorageHandler) HandlerRemove(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodDelete {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: "Only DELETE method allowed"})
+		response.DefaultResponse{Type: "Error", Message: "Only DELETE method allowed"}.Response(w, http.StatusMethodNotAllowed)
 		return
 	}
 	idstr := strings.TrimPrefix(r.URL.Path, "/good/remove/")
 	idstrsplit := strings.Split(idstr, "&")
 	if len(idstrsplit) < 2 {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: `Decode URL path. Want /good/remove/{int}&{int}`})
+		response.DefaultResponse{Type: "Error", Message: `Decode URL path. Want /good/remove/{int}&{int}`}.Response(w, http.StatusBadRequest)
 		return
 	}
 	id, err := strconv.Atoi(idstrsplit[0])
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: fmt.Sprintf(`Decode URL path. Want /good/remove/{int}&{int}: %v`, err)})
+		response.DefaultResponse{Type: "Error", Message: fmt.Sprintf(`Decode URL path. Want /good/remove/{int}&{int}: %v`, err)}.Response(w, http.StatusBadRequest)
 		return
 	}
 
 	projectid, err := strconv.Atoi(idstrsplit[1])
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: fmt.Sprintf(`Decode URL path. Want /good/remove/{int}&{int}: %v`, err)})
+		response.DefaultResponse{Type: "Error", Message: fmt.Sprintf(`Decode URL path. Want /good/remove/{int}&{int}: %v`, err)}.Response(w, http.StatusBadRequest)
 		return
 	}
 	answer, err := postgres.NewStoragePostgres(s.Db, s.NatsConn).Remove(id, projectid)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: fmt.Sprintf("Bad request: %v", err)})
+		response.DefaultResponse{Type: "Error", Message: fmt.Sprintf("Bad request: %v", err)}.Response(w, http.StatusBadRequest)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
@@ -171,9 +137,7 @@ func (s *StorageHandler) HandlerRemove(w http.ResponseWriter, r *http.Request) {
 }
 func (s *StorageHandler) HandlerList(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: "Only GET method allowed"})
+		response.DefaultResponse{Type: "Error", Message: "Only GET method allowed"}.Response(w, http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -183,17 +147,13 @@ func (s *StorageHandler) HandlerList(w http.ResponseWriter, r *http.Request) {
 	if len(idstrsplit) < 2 {
 		limit, err := strconv.Atoi(idstr)
 		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: fmt.Sprintf(`Decode URL path. Want /goods/list/{int}&{int}: %v`, err)})
+			response.DefaultResponse{Type: "Error", Message: fmt.Sprintf(`Decode URL path. Want /goods/list/{int}&{int}: %v`, err)}.Response(w, http.StatusBadRequest)
 			return
 		}
 		offset = 1
 		answer, err := postgres.NewStoragePostgres(s.Db, s.NatsConn).List(limit, offset)
 		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: fmt.Sprintf("Bad request: %v", err)})
+			response.DefaultResponse{Type: "Error", Message: fmt.Sprintf("Bad request: %v", err)}.Response(w, http.StatusBadRequest)
 			return
 		}
 		w.WriteHeader(http.StatusOK)
@@ -203,24 +163,18 @@ func (s *StorageHandler) HandlerList(w http.ResponseWriter, r *http.Request) {
 	}
 	limit, err := strconv.Atoi(idstrsplit[0])
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: fmt.Sprintf(`Decode URL path. Want /goods/list/{int}&{int}: %v`, err)})
+		response.DefaultResponse{Type: "Error", Message: fmt.Sprintf(`Decode URL path. Want /goods/list/{int}&{int}: %v`, err)}.Response(w, http.StatusBadRequest)
 		return
 	}
 
 	offset, err = strconv.Atoi(idstrsplit[1])
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: fmt.Sprintf(`Decode URL path. Want /goods/list/{int}&{int}: %v`, err)})
+		response.DefaultResponse{Type: "Error", Message: fmt.Sprintf(`Decode URL path. Want /goods/list/{int}&{int}: %v`, err)}.Response(w, http.StatusBadRequest)
 		return
 	}
 	answer, err := postgres.NewStoragePostgres(s.Db, s.NatsConn).List(limit, offset)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: fmt.Sprintf("Bad request: %v", err)})
+		response.DefaultResponse{Type: "Error", Message: fmt.Sprintf("Bad request: %v", err)}.Response(w, http.StatusBadRequest)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
@@ -228,55 +182,39 @@ func (s *StorageHandler) HandlerList(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(answer)
 }
 func (s *StorageHandler) HandlerReprioritize(w http.ResponseWriter, r *http.Request) {
-	strerr := func(err error) {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: fmt.Sprintf(`Decode URL path. Want /good/reprioritize/{int}&{int}: %v`, err)})
-	}
-
-	dcoderr := func() {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: "Decode. Want 'newPriority':{int}"})
-	}
-
 	if r.Method != http.MethodPatch {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: "Only PATCH method allowed"})
+		response.DefaultResponse{Type: "Error", Message: "Only PATCH method allowed"}.Response(w, http.StatusMethodNotAllowed)
 		return
 	}
 
 	idstr := strings.TrimPrefix(r.URL.Path, "/good/reprioritize/")
 	idstrsplit := strings.Split(idstr, "&")
 	if len(idstrsplit) < 2 {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: `Decode URL path. Want /good/reprioritize/{int}&{int}`})
+		response.DefaultResponse{Type: "Error", Message: `Decode URL path. Want /good/reprioritize/{int}&{int}`}.Response(w, http.StatusBadRequest)
 		return
 	}
 
 	var request response.ReoprioritizePayload
 
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		dcoderr()
+		response.DefaultResponse{Type: "Error", Message: "Decode. Want 'newPriority':{int}"}.Response(w, http.StatusBadRequest)
 		return
 	}
 
 	if request.NewPriority == nil {
-		dcoderr()
+		response.DefaultResponse{Type: "Error", Message: "Decode. Want 'newPriority':{int}"}.Response(w, http.StatusBadRequest)
 		return
 	}
 
 	id, err := strconv.Atoi(idstrsplit[0])
 	if err != nil {
-		strerr(err)
+		response.DefaultResponse{Type: "Error", Message: fmt.Sprintf(`Decode URL path. Want /good/reprioritize/{int}&{int}: %v`, err)}.Response(w, http.StatusBadRequest)
 		return
 	}
 
 	projectid, err := strconv.Atoi(idstrsplit[1])
 	if err != nil {
-		strerr(err)
+		response.DefaultResponse{Type: "Error", Message: fmt.Sprintf(`Decode URL path. Want /good/reprioritize/{int}&{int}: %v`, err)}.Response(w, http.StatusBadRequest)
 		return
 	}
 
@@ -284,9 +222,7 @@ func (s *StorageHandler) HandlerReprioritize(w http.ResponseWriter, r *http.Requ
 
 	answer, err := postgres.NewStoragePostgres(s.Db, s.NatsConn).Reprioritize(id, projectid, priority)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: fmt.Sprintf("Bad request: %v", err)})
+		response.DefaultResponse{Type: "Error", Message: fmt.Sprintf("Bad request: %v", err)}.Response(w, http.StatusBadRequest)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
