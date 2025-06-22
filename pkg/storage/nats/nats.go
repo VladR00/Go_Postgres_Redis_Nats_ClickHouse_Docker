@@ -21,12 +21,15 @@ func ConnectNats() (*nats.Conn, error) {
 func NatsSubscribes(natsConn *nats.Conn, database *sql.DB) {
 	natsConn.Subscribe("logs", func(m *nats.Msg) {
 		var logs response.NatsForClick
+		log.Println(m.Data)
 		err := json.Unmarshal(m.Data, &logs)
 		if err != nil {
 			log.Println("Failed to unmarshal log message:", err)
 		}
 		log.Println("Nats recieve msg. try to give click")
 		db := clickhouse.NewStorageClickhouse(database)
-		db.InsertLog(logs)
+		if err := db.InsertLog(logs); err != nil {
+			log.Println("error insert into click:", err)
+		}
 	})
 }

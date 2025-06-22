@@ -54,7 +54,7 @@ func (s *StorageHandler) HandlerCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	//usecase -> менеджер транзакций (begin/commit/rollback)
-	answer, err := postgres.NewStoragePostgres(s.Db).Create(request, id)
+	answer, err := postgres.NewStoragePostgres(s.Db, s.NatsConn).Create(request, id)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Header().Set("Content-Type", "application/json")
@@ -99,7 +99,7 @@ func (s *StorageHandler) HandlerPatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	answer, err := postgres.NewStoragePostgres(s.Db).Update(request, id)
+	answer, err := postgres.NewStoragePostgres(s.Db, s.NatsConn).Update(request, id)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Header().Set("Content-Type", "application/json")
@@ -142,7 +142,7 @@ func (s *StorageHandler) HandlerRemove(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: fmt.Sprintf(`Decode URL path. Want /good/remove/{int}&{int}: %v`, err)})
 		return
 	}
-	answer, err := postgres.NewStoragePostgres(s.Db).Remove(id, projectid)
+	answer, err := postgres.NewStoragePostgres(s.Db, s.NatsConn).Remove(id, projectid)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Header().Set("Content-Type", "application/json")
@@ -173,7 +173,7 @@ func (s *StorageHandler) HandlerList(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		offset = 1
-		answer, err := postgres.NewStoragePostgres(s.Db).List(limit, offset)
+		answer, err := postgres.NewStoragePostgres(s.Db, s.NatsConn).List(limit, offset)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			w.Header().Set("Content-Type", "application/json")
@@ -200,7 +200,7 @@ func (s *StorageHandler) HandlerList(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(response.DefaultResponse{Type: "Error", Message: fmt.Sprintf(`Decode URL path. Want /goods/list/{int}&{int}: %v`, err)})
 		return
 	}
-	answer, err := postgres.NewStoragePostgres(s.Db).List(limit, offset)
+	answer, err := postgres.NewStoragePostgres(s.Db, s.NatsConn).List(limit, offset)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Header().Set("Content-Type", "application/json")
@@ -266,7 +266,7 @@ func (s *StorageHandler) HandlerReprioritize(w http.ResponseWriter, r *http.Requ
 
 	priority := *request.NewPriority
 
-	answer, err := postgres.NewStoragePostgres(s.Db).Reprioritize(id, projectid, priority)
+	answer, err := postgres.NewStoragePostgres(s.Db, s.NatsConn).Reprioritize(id, projectid, priority)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Header().Set("Content-Type", "application/json")

@@ -2,7 +2,9 @@ package postgres
 
 import (
 	"context"
+	"encoding/json"
 	"log"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -13,9 +15,9 @@ import (
 
 type StoragePostgres struct {
 	Db       *pgxpool.Pool
-	NatsConn *nats.Conn //recently added ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-} ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	NatsConn *nats.Conn
+}
+
 func NewStoragePostgres(storage *pgxpool.Pool, nats *nats.Conn) *StoragePostgres {
 	return &StoragePostgres{Db: storage, NatsConn: nats}
 }
@@ -48,6 +50,34 @@ func (s *StoragePostgres) Create(request response.CreatePayload, id int) (*respo
 		}
 		log.Println("Transaction commited.")
 	}
+
+	var removed uint8
+	if answer.Removed {
+		removed = 1
+	} else {
+		removed = 0
+	}
+
+	natsdata := response.NatsForClick{
+		Id:          uint32(answer.ID),
+		ProjectId:   uint32(answer.ProjectID),
+		Name:        answer.Name,
+		Description: answer.Description,
+		Priority:    uint32(answer.Priority),
+		Removed:     removed,
+		EventTime:   time.Now(),
+	}
+
+	natsanswer, err := json.Marshal(natsdata)
+	if err != nil {
+		log.Println("Failed to marshal log message: ", err)
+	}
+
+	err = s.NatsConn.Publish("logs", natsanswer)
+	if err != nil {
+		log.Println("Failed to publish message to NATS: ", err)
+	}
+
 	return &answer, nil
 }
 
@@ -78,6 +108,34 @@ func (s *StoragePostgres) Update(request response.UpdatePayload, id int) (*respo
 		}
 		log.Println("Transaction commited.")
 	}
+
+	var removed uint8
+	if answer.Removed {
+		removed = 1
+	} else {
+		removed = 0
+	}
+
+	natsdata := response.NatsForClick{
+		Id:          uint32(answer.ID),
+		ProjectId:   uint32(answer.ProjectID),
+		Name:        answer.Name,
+		Description: answer.Description,
+		Priority:    uint32(answer.Priority),
+		Removed:     removed,
+		EventTime:   time.Now(),
+	}
+
+	natsanswer, err := json.Marshal(natsdata)
+	if err != nil {
+		log.Println("Failed to marshal log message: ", err)
+	}
+
+	err = s.NatsConn.Publish("logs", natsanswer)
+	if err != nil {
+		log.Println("Failed to publish message to NATS: ", err)
+	}
+
 	return &answer, nil
 }
 
@@ -108,6 +166,30 @@ func (s *StoragePostgres) Remove(id int, projectid int) (*response.DeleteRespons
 		}
 		log.Println("Transaction commited.")
 	}
+
+	var removed uint8
+	if answer.Removed {
+		removed = 1
+	} else {
+		removed = 0
+	}
+
+	natsdata := response.NatsForClick{
+		Id:        uint32(answer.ID),
+		Removed:   removed,
+		EventTime: time.Now(),
+	}
+
+	natsanswer, err := json.Marshal(natsdata)
+	if err != nil {
+		log.Println("Failed to marshal log message: ", err)
+	}
+
+	err = s.NatsConn.Publish("logs", natsanswer)
+	if err != nil {
+		log.Println("Failed to publish message to NATS: ", err)
+	}
+
 	return &answer, nil
 }
 
@@ -200,6 +282,21 @@ func (s *StoragePostgres) Reprioritize(id, projectid, priority int) (*response.R
 		if err := rows.Scan(&priority.ID, &priority.Priority); err != nil {
 			log.Println("Err scan rows:", err)
 			return nil, err
+		}
+		natsdata := response.NatsForClick{
+			Id:        uint32(priority.ID),
+			Priority:  uint32(priority.Priority),
+			EventTime: time.Now(),
+		}
+
+		natsanswer, err := json.Marshal(natsdata)
+		if err != nil {
+			log.Println("Failed to marshal log message: ", err)
+		}
+
+		err = s.NatsConn.Publish("logs", natsanswer)
+		if err != nil {
+			log.Println("Failed to publish message to NATS: ", err)
 		}
 		priorities = append(priorities, priority)
 	}

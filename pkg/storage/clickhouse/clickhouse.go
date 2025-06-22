@@ -1,6 +1,7 @@
 package clickhouse
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	response "gopostgres/internal/domain/models/handle"
@@ -26,7 +27,6 @@ func ConnectClickHouse() (*sql.DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer db.Close()
 
 	if err := migrations(fmt.Sprintf("clickhouse://%s", url)); err != nil {
 		return nil, err
@@ -35,7 +35,7 @@ func ConnectClickHouse() (*sql.DB, error) {
 }
 
 func migrations(url string) error {
-	m, err := migrate.New("file://..internal/domain/migrations/clickhouse", url)
+	m, err := migrate.New("file://../internal/domain/migrations/clickhouse", url)
 	if err != nil {
 		return err
 	}
@@ -48,18 +48,28 @@ func migrations(url string) error {
 }
 
 func (s *StorageClickhouse) InsertLog(logs response.NatsForClick) error {
-	insert, err := s.Db.Prepare("INSERT INTO logs (Id, ProjectId, Name, Description, Priority, Removed, EventTime) VALUES (?, ?, ?, ?, ?, ?, ?)")
+	tx, err := s.Db.Begin()
 	if err != nil {
-		log.Println("Failed to prepare statement: ", err)
+		log.Println("Error start transaction in click:", err)
 		return err
 	}
-	defer insert.Close()
+	insert := (`INSERT INTO logs 
+				(Id, ProjectId, Name, Description, Priority, Removed, EventTime) 
+				VALUES (?, ?, ?, ?, ?, ?, ?)`)
 
-	_, err = insert.Exec(logs.Id, logs.ProjectId, logs.Name, logs.Description, logs.Priority, logs.Removed, logs.EventTime)
+	//for _, logg := range logs {
+	_, err = tx.ExecContext(context.Background(), insert, logs.Id, logs.ProjectId, logs.Name, logs.Description, logs.Priority, logs.Removed, logs.EventTime)
 	if err != nil {
-		log.Printf("Failed to insert log into ClickHouse: %v", err)
+		log.Println("Failed to insert log into ClickHouse: ", err)
+		tx.Rollback()
 		return err
 	}
+	if err := tx.Commit(); err != nil {
+		log.Println("Failed to commit transaction: ", err)
+		return err
+	}
+	//}
+
 	log.Println("Logs inserted into ClickHouse")
 	return nil
 }
