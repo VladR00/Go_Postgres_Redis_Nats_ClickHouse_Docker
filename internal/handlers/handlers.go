@@ -57,7 +57,7 @@ func (s *StorageHandler) HandlerCreate(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(answer)
 }
 
-func (s *StorageHandler) HandlerPatch(w http.ResponseWriter, r *http.Request) {
+func (s *StorageHandler) HandlerUpdate(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPatch {
 		response.DefaultResponse{Type: "Error", Message: "Only PATCH method allowed"}.Response(w, http.StatusMethodNotAllowed)
 		return
